@@ -2,32 +2,56 @@
 
     Sub Main(args() As String)
 
-        If args.Count = 1 Then
-            Dim folderName = args(0)
+        Dim verbose As Boolean = True
+        Dim nonAsciiFileNameCount As Integer = 0
+
+        Dim argList As New List(Of String)(args)
+
+        If argList.Count = 1 Then
+            Dim folderName = argList(0)
             Dim folderNameLength = folderName.Length
 
-            If IsPureAscii(folderName) = False Then
-                Console.WriteLine("Folder name contains non-ASCI characters.")
-            End If
-
-            Dim files() As String = System.IO.Directory.GetFiles(folderName, "*.*", System.IO.SearchOption.AllDirectories)
-
-            Console.WriteLine(folderName)
-            System.IO.Directory.SetCurrentDirectory(folderName)
-            For Each file In files
-                Dim oldName = file.Substring(folderNameLength + 1)
-                Dim newName = ToPureAscii(oldName)
-                Console.WriteLine(newName)
-                If oldName <> newName Then
-                    System.IO.Directory.Move(oldName, newName)
+            If System.IO.File.Exists(folderName) = False Then
+                Console.WriteLine("Folder: """ & folderName & """ does not exist.")
+            Else
+                If IsPureAscii(folderName) = False Then
+                    Console.WriteLine("Folder name contains non-ASCI characters.")
                 End If
-            Next
+
+                Dim files() As String = System.IO.Directory.GetFiles(folderName, "*.*", System.IO.SearchOption.AllDirectories)
+
+                Console.WriteLine(folderName)
+                System.IO.Directory.SetCurrentDirectory(folderName)
+                For Each file In files
+                    Dim oldName = file.Substring(folderNameLength + 1)
+                    Dim newName = ToPureAscii(oldName)
+                    Console.WriteLine(newName)
+                    If oldName <> newName Then
+                        nonAsciiFileNameCount += 1
+                        Console.WriteLine(nonAsciiFileNameCount & ". " & oldName & " => " & newName)
+                        If Not verbose Then
+                            System.IO.Directory.Move(oldName, newName)
+                        End If
+                    End If
+                Next
+
+                Console.WriteLine(nonAsciiFileNameCount & " folders are named with non-ASCII characters.")
+            End If
         Else
-            Console.WriteLine("Usage: AsciiTheFolder <folderName>")
-            Console.WriteLine("Converts all filenames to pure ASCII")
+            ShowUsage()
         End If
 
+        Console.WriteLine("Finished.")
         Console.ReadLine()
+
+    End Sub
+
+    Sub ShowUsage()
+
+        Console.WriteLine("Usage: AsciiTheFolder [-v] <folderName>")
+        Console.WriteLine("Converts all filenames to pure ASCII")
+        Console.WriteLine("Options:")
+        Console.WriteLine("  -v  - verbose; just display all the changes that should be made")
 
     End Sub
 
