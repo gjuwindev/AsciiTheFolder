@@ -24,7 +24,6 @@
 
         If argList.Count = 1 Then
             Dim folderName = argList(0)
-            Dim folderNameLength = folderName.Length
 
             If System.IO.Directory.Exists(folderName) = False Then
                 Console.WriteLine("Folder: """ & folderName & """ does not exist.")
@@ -33,7 +32,7 @@
 
                 If IsPureAscii(folderName) = False Then
                     Console.WriteLine("Folder name itself contains non-ASCI characters.")
-                    Dim newName = ToPureAscii(folderName) & "2"
+                    Dim newName = ToPureAscii(folderName)
                     If Not verbose Then
                         Console.WriteLine("Folder " & folderName & " => " & newName)
                         System.IO.Directory.Move(folderName, newName)
@@ -44,16 +43,21 @@
                 End If
 
                 Dim files() As String = System.IO.Directory.GetFileSystemEntries(folderName, "*.*", System.IO.SearchOption.AllDirectories)
+                Dim renamedOK, renameFailed As Integer
 
                 System.IO.Directory.SetCurrentDirectory(folderName)
                 For Each file In files
-                    Dim oldName = file.Substring(folderNameLength + 1)
+                    Dim oldName = file.Substring(folderName.Length + 1)
                     Dim newName = ToPureAscii(oldName)
                     If oldName <> newName Then
                         nonAsciiFileNameCount += 1
                         If Not verbose Then
                             Console.WriteLine(nonAsciiFileNameCount & ". " & oldName & " => " & newName)
-                            System.IO.Directory.Move(oldName, newName)
+                            If RenameFile(oldName, newName) Then
+                                renamedOK += 1
+                            Else
+                                renameFailed += 1
+                            End If
                         Else
                             Console.WriteLine(nonAsciiFileNameCount & ". shold be " & oldName & " => " & newName)
                         End If
@@ -65,7 +69,7 @@
                 If files.Count = 0 Then
                     Console.WriteLine("Folder """ & folderName & """ is empty.")
                 Else
-                    Console.WriteLine(files.Count & " filenames processed.")
+                    Console.WriteLine(files.Count & " filenames processed, " & renamedOK & " names renamed, " & renameFailed & " failed to rename.")
                 End If
 
                 Console.WriteLine(nonAsciiFileNameCount & " filenames contain non-ASCII characters.")
@@ -78,6 +82,14 @@
         Console.ReadLine()
 
     End Sub
+
+    Function RenameFile(oldName As String, newName As String) As Boolean
+
+        System.IO.Directory.Move(oldName, newName)
+
+        Return True
+
+    End Function
 
     Sub ShowUsage()
 
