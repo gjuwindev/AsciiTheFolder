@@ -2,40 +2,73 @@
 
     Sub Main(args() As String)
 
-        Dim verbose As Boolean = True
+        Dim showPureAsciiFilesToo As Boolean = False
+        Dim verbose As Boolean = False
+
         Dim nonAsciiFileNameCount As Integer = 0
 
         Dim argList As New List(Of String)(args)
+
+        If argList.Count = 2 Then
+            If argList(0) = "-v" Then
+                verbose = True
+                Console.WriteLine("Verbose mode ON.")
+                argList.RemoveAt(0)
+            ElseIf argList(0) = "-V" Then
+                verbose = True
+                showPureAsciiFilesToo = True
+                Console.WriteLine("Very verbose mode ON.")
+                argList.RemoveAt(0)
+            End If
+        End If
 
         If argList.Count = 1 Then
             Dim folderName = argList(0)
             Dim folderNameLength = folderName.Length
 
-            If System.IO.File.Exists(folderName) = False Then
+            If System.IO.Directory.Exists(folderName) = False Then
                 Console.WriteLine("Folder: """ & folderName & """ does not exist.")
             Else
+                Console.WriteLine("Processing folder """ & folderName & """.")
+
                 If IsPureAscii(folderName) = False Then
-                    Console.WriteLine("Folder name contains non-ASCI characters.")
+                    Console.WriteLine("Folder name itself contains non-ASCI characters.")
+                    Dim newName = ToPureAscii(folderName) & "2"
+                    If Not verbose Then
+                        Console.WriteLine("Folder " & folderName & " => " & newName)
+                        System.IO.Directory.Move(folderName, newName)
+                        folderName = newName
+                    Else
+                        Console.WriteLine("Should be " & folderName & " => " & newName)
+                    End If
                 End If
 
-                Dim files() As String = System.IO.Directory.GetFiles(folderName, "*.*", System.IO.SearchOption.AllDirectories)
+                Dim files() As String = System.IO.Directory.GetFileSystemEntries(folderName, "*.*", System.IO.SearchOption.AllDirectories)
 
-                Console.WriteLine(folderName)
                 System.IO.Directory.SetCurrentDirectory(folderName)
                 For Each file In files
                     Dim oldName = file.Substring(folderNameLength + 1)
                     Dim newName = ToPureAscii(oldName)
-                    Console.WriteLine(newName)
                     If oldName <> newName Then
                         nonAsciiFileNameCount += 1
-                        Console.WriteLine(nonAsciiFileNameCount & ". " & oldName & " => " & newName)
                         If Not verbose Then
+                            Console.WriteLine(nonAsciiFileNameCount & ". " & oldName & " => " & newName)
                             System.IO.Directory.Move(oldName, newName)
+                        Else
+                            Console.WriteLine(nonAsciiFileNameCount & ". shold be " & oldName & " => " & newName)
                         End If
+                    ElseIf showPureAsciiFilesToo Then
+                        Console.WriteLine("pureASCII: " & oldName)
                     End If
                 Next
 
-                Console.WriteLine(nonAsciiFileNameCount & " folders are named with non-ASCII characters.")
+                If files.Count = 0 Then
+                    Console.WriteLine("Folder """ & folderName & """ is empty.")
+                Else
+                    Console.WriteLine(files.Count & " filenames processed.")
+                End If
+
+                Console.WriteLine(nonAsciiFileNameCount & " filenames contain non-ASCII characters.")
             End If
         Else
             ShowUsage()
@@ -52,6 +85,7 @@
         Console.WriteLine("Converts all filenames to pure ASCII")
         Console.WriteLine("Options:")
         Console.WriteLine("  -v  - verbose; just display all the changes that should be made")
+        Console.WriteLine("  -V  - very verbose; display both changed and unchanged filenames")
 
     End Sub
 
