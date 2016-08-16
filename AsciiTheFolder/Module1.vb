@@ -26,10 +26,13 @@
 
         If folderDepth = 0 Then
             ResetCounters()
-            'Rename starting folder
+            totalFolderCount += 1
+            totalItemCount += 1
+            Dim upperFolderFolderName As String = System.IO.Path.GetDirectoryName(upperFolderName)
+            Dim folderName As String = System.IO.Path.GetFileName(upperFolderName)
+            System.IO.Directory.SetCurrentDirectory(upperFolderFolderName)
+            upperFolderName = CheckRenameFileOrFolder(upperFolderFolderName, folderName)
         End If
-
-        totalFolderCount += 1
 
         ' set current directory
         System.IO.Directory.SetCurrentDirectory(upperFolderName)
@@ -56,33 +59,43 @@
 
     End Sub
 
-    Sub CheckRenameFileOrFolder(folderName As String, oldName As String)
+    ''' <summary>
+    ''' Returns new starting folder name (or old, if unsuccessful)
+    ''' </summary>
+    ''' <param name="folderName"></param>
+    ''' <param name="oldName"></param>
+    ''' <returns></returns>
+    Function CheckRenameFileOrFolder(folderName As String, oldName As String) As String
 
         If IsPureAscii(oldName) Then
             renameNotNeeded += 1
             If verbose Then
                 Console.WriteLine("IsPureASCII: " & oldName)
             End If
+            Return System.IO.Path.Combine(folderName, oldName)
         Else  ' not pure ASCII, should be ASCII-fied
             renameCandidateCount += 1
             Dim newName = ToPureAscii(oldName)
             If veryVerbose Then  ' just echo what would be done if -V flag was not present in the command line
                 renameSkipped += 1
                 Console.WriteLine(renameCandidateCount & ". shold be " & oldName & " => " & newName)
+                Return System.IO.Path.Combine(folderName, oldName)
             Else
                 Dim errorMessage As String = RenameFileOrFolder(folderName, oldName, newName)
                 If errorMessage Is Nothing Then
                     renameSucceded += 1
                     Console.WriteLine(renameCandidateCount & ". " & oldName & " => " & newName)
+                    Return System.IO.Path.Combine(folderName, newName)
                 Else
                     renameFailed += 1
                     Console.WriteLine(renameCandidateCount & ". FAILED " & oldName & " => " & newName)
                     Console.WriteLine("     " & errorMessage)
+                    Return System.IO.Path.Combine(folderName, oldName)
                 End If
             End If
         End If
 
-    End Sub
+    End Function
 
 
 
