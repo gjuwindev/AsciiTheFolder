@@ -1,30 +1,5 @@
 ﻿Module Module2
 
-    'Function RenameSingleFolder(folderName As String) As String
-
-    '    If IsPureAscii(folderName) Then
-    '        If veryVerbose Then
-    '            Console.WriteLine("ASCII: " & folderName)
-    '        End If
-    '    Else
-    '        Dim newName = ToPureAscii(folderName)
-    '        If verbose Then
-    '            Console.WriteLine("Should rename: " & folderName & " => " & newName)
-    '        Else
-    '            Console.WriteLine("Folder " & folderName & " => " & newName)
-    '            Try
-    '                System.IO.Directory.Move(folderName, newName)
-    '                Return newName
-    '            Catch ex As Exception
-    '                Console.WriteLine("Error renaming folder: """ & folderName & """ """ & newName & """, exception: " & ex.Message)
-    '            End Try
-    '        End If
-    '    End If
-
-    '    Return Nothing
-
-    'End Function
-
     Function RenameFileOrFolder(folderName As String, oldName As String, newName As String) As String
 
         ' folderName is the name of the current directory

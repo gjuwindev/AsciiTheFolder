@@ -100,36 +100,6 @@
 
     End Function
 
-
-
-    'Sub x()
-
-    '    If IsPureAscii(folderName) = False Then
-    '        Console.WriteLine("Folder name itself contains non-ASCI characters.")
-    '        Dim newName = ToPureAscii(folderName)
-    '        If Not verbose Then
-    '            Console.WriteLine("Folder " & folderName & " => " & newName)
-    '            System.IO.Directory.Move(folderName, newName)
-    '            folderName = newName
-    '        Else
-    '            Console.WriteLine("Should be " & folderName & " => " & newName)
-    '        End If
-    '    End If
-
-
-    '    If files.Count = 0 Then
-    '        Console.WriteLine("Folder """ & folderName & """ is empty.")
-    '    Else
-    '        Console.WriteLine(files.Count & " filenames processed, " & renameSucceded & " names renamed, " & renameFailed & " failed to rename.")
-    '    End If
-
-    '    Console.WriteLine(nonAsciiFileNameCount & " filenames contain non-ASCII characters.")
-    '    Else
-    '    ShowUsage()
-    '    End If
-
-    'End Sub
-
     Sub ResetCounters()
 
         totalItemCount = 0
