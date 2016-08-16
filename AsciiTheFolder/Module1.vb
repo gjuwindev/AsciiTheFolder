@@ -28,10 +28,11 @@
             ResetCounters()
             totalFolderCount += 1
             totalItemCount += 1
+
             Dim upperFolderFolderName As String = System.IO.Path.GetDirectoryName(upperFolderName)
             Dim folderName As String = System.IO.Path.GetFileName(upperFolderName)
             System.IO.Directory.SetCurrentDirectory(upperFolderFolderName)
-            upperFolderName = CheckRenameFileOrFolder(upperFolderFolderName, folderName)
+            upperFolderName = CheckRenameFileOrFolder(upperFolderFolderName, folderName)  ' new upper folder name, if renamed
         End If
 
         ' set current directory
@@ -76,6 +77,13 @@
         Else  ' not pure ASCII, should be ASCII-fied
             renameCandidateCount += 1
             Dim newName = ToPureAscii(oldName)
+
+            Dim tempName As String = System.IO.Path.Combine(folderName, newName)
+            While System.IO.File.Exists(tempName) OrElse System.IO.Directory.Exists(tempName)
+                tempName = tempName & "X"
+            End While
+            newName = tempName
+
             If veryVerbose Then  ' just echo what would be done if -V flag was not present in the command line
                 renameSkipped += 1
                 Console.WriteLine(renameCandidateCount & ". shold be " & oldName & " => " & newName)
