@@ -1,156 +1,145 @@
 ﻿Module Module1
 
+    Public startingFolderName As String
+
+    Public veryVerbose As Boolean = False
+    Public verbose As Boolean = False
+
+    Public totalItemCount, totalFolderCount As Integer
+    Public renameCandidateCount, renameNotNeeded, renameSucceded, renameFailed, renameSkipped As Integer
+
     Sub Main(args() As String)
 
-        Dim showPureAsciiFilesToo As Boolean = False
-        Dim verbose As Boolean = False
-
-        Dim nonAsciiFileNameCount As Integer = 0
-
-        Dim argList As New List(Of String)(args)
-
-        If argList.Count = 2 Then
-            If argList(0) = "-v" Then
-                verbose = True
-                Console.WriteLine("Verbose mode ON.")
-                argList.RemoveAt(0)
-            ElseIf argList(0) = "-V" Then
-                verbose = True
-                showPureAsciiFilesToo = True
-                Console.WriteLine("Very verbose mode ON.")
-                argList.RemoveAt(0)
-            End If
+        If ProcessCommandLineArguments(args) Then
+            WalkRecursivelyAndRenameFilesAndFolders(startingFolderName)
         End If
 
-        If argList.Count = 1 Then
-            Dim folderName = argList(0)
+        DisplayCounters
 
-            If System.IO.Directory.Exists(folderName) = False Then
-                Console.WriteLine("Folder: """ & folderName & """ does not exist.")
-            Else
-                Console.WriteLine("Processing folder """ & folderName & """.")
-
-                If IsPureAscii(folderName) = False Then
-                    Console.WriteLine("Folder name itself contains non-ASCI characters.")
-                    Dim newName = ToPureAscii(folderName)
-                    If Not verbose Then
-                        Console.WriteLine("Folder " & folderName & " => " & newName)
-                        System.IO.Directory.Move(folderName, newName)
-                        folderName = newName
-                    Else
-                        Console.WriteLine("Should be " & folderName & " => " & newName)
-                    End If
-                End If
-
-                Dim files() As String = System.IO.Directory.GetFileSystemEntries(folderName, "*.*", System.IO.SearchOption.AllDirectories)
-                Dim renamedOK, renameFailed As Integer
-
-                System.IO.Directory.SetCurrentDirectory(folderName)
-                For Each file In files
-                    Dim oldName = file.Substring(folderName.Length + 1)
-                    Dim newName = ToPureAscii(oldName)
-                    If oldName <> newName Then
-                        nonAsciiFileNameCount += 1
-                        If Not verbose Then
-                            Console.WriteLine(nonAsciiFileNameCount & ". " & oldName & " => " & newName)
-                            If RenameFile(oldName, newName) Then
-                                renamedOK += 1
-                            Else
-                                renameFailed += 1
-                            End If
-                        Else
-                            Console.WriteLine(nonAsciiFileNameCount & ". shold be " & oldName & " => " & newName)
-                        End If
-                    ElseIf showPureAsciiFilesToo Then
-                        Console.WriteLine("pureASCII: " & oldName)
-                    End If
-                Next
-
-                If files.Count = 0 Then
-                    Console.WriteLine("Folder """ & folderName & """ is empty.")
-                Else
-                    Console.WriteLine(files.Count & " filenames processed, " & renamedOK & " names renamed, " & renameFailed & " failed to rename.")
-                End If
-
-                Console.WriteLine(nonAsciiFileNameCount & " filenames contain non-ASCII characters.")
-            End If
-        Else
-            ShowUsage()
-        End If
-
+        ' the following prompt and input to be removed in the final version
         Console.WriteLine("Finished.")
         Console.ReadLine()
 
     End Sub
 
-    Function RenameFile(oldName As String, newName As String) As Boolean
+    Sub WalkRecursivelyAndRenameFilesAndFolders(upperFolderName As String, Optional folderDepth As Integer = 0)
 
-        System.IO.Directory.Move(oldName, newName)
+        If folderDepth = 0 Then
+            ResetCounters()
+            'Rename starting folder
+        End If
 
-        Return True
+        totalFolderCount += 1
 
-    End Function
+        ' set current directory
+        System.IO.Directory.SetCurrentDirectory(upperFolderName)
 
-    Sub ShowUsage()
+        ' get list of all entries in that directory
+        Dim files() As String = System.IO.Directory.GetFileSystemEntries(".", "*.*", System.IO.SearchOption.TopDirectoryOnly)
+        totalItemCount += files.Count
 
-        Console.WriteLine("Usage: AsciiTheFolder [-v] <folderName>")
-        Console.WriteLine("Converts all filenames to pure ASCII")
-        Console.WriteLine("Options:")
-        Console.WriteLine("  -v  - verbose; just display all the changes that should be made")
-        Console.WriteLine("  -V  - very verbose; display both changed and unchanged filenames")
+        ' check and rename all directories
+        For Each fileName In files
+            Dim oldName = fileName.Substring(2)
+            CheckRenameFileOrFolder(upperFolderName, oldName)
+        Next
+
+        ' get folder names (some now renamed)
+        Dim folders() As String = System.IO.Directory.GetDirectories(".", "*.*", System.IO.SearchOption.AllDirectories)
+        totalFolderCount += folders.Count
+
+        ' call ourselves recursively for each folder
+        For Each folder In folders
+            Dim nextFolderName = upperFolderName & "\" & folder.Substring(2)
+            WalkRecursivelyAndRenameFilesAndFolders(nextFolderName, folderDepth + 1)
+        Next
 
     End Sub
 
-    Function IsPureAscii(s As String) As Boolean
+    Sub CheckRenameFileOrFolder(folderName As String, oldName As String)
 
-        For Each c In s
-            Dim ch As Integer = Convert.ToInt32(c)
-            If ch < 32 OrElse ch > 126 Then
-                Return False
+        If IsPureAscii(oldName) Then
+            renameNotNeeded += 1
+            If verbose Then
+                Console.WriteLine("IsPureASCII: " & oldName)
             End If
-        Next
+        Else  ' not pure ASCII, should be ASCII-fied
+            renameCandidateCount += 1
+            Dim newName = ToPureAscii(oldName)
+            If veryVerbose Then  ' just echo what would be done if -V flag was not present in the command line
+                renameSkipped += 1
+                Console.WriteLine(renameCandidateCount & ". shold be " & oldName & " => " & newName)
+            Else
+                Dim errorMessage As String = RenameFileOrFolder(folderName, oldName, newName)
+                If errorMessage Is Nothing Then
+                    renameSucceded += 1
+                    Console.WriteLine(renameCandidateCount & ". " & oldName & " => " & newName)
+                Else
+                    renameFailed += 1
+                    Console.WriteLine(renameCandidateCount & ". FAILED " & oldName & " => " & newName)
+                    Console.WriteLine("     " & errorMessage)
+                End If
+            End If
+        End If
 
-        Return True
+    End Sub
 
-    End Function
 
-    Function ToPureAscii(s As String) As String
 
-        Dim sb As New System.Text.StringBuilder
-        Dim c2 As String
+    'Sub x()
 
-        For Each c In s
-            Select Case c
-                Case "č" : c2 = "c"
-                Case "ć" : c2 = "c"
-                Case "ž" : c2 = "z"
-                Case "đ" : c2 = "dj"
-                Case "š" : c2 = "s"
+    '    If IsPureAscii(folderName) = False Then
+    '        Console.WriteLine("Folder name itself contains non-ASCI characters.")
+    '        Dim newName = ToPureAscii(folderName)
+    '        If Not verbose Then
+    '            Console.WriteLine("Folder " & folderName & " => " & newName)
+    '            System.IO.Directory.Move(folderName, newName)
+    '            folderName = newName
+    '        Else
+    '            Console.WriteLine("Should be " & folderName & " => " & newName)
+    '        End If
+    '    End If
 
-                Case "Č" : c2 = "C"
-                Case "Ć" : c2 = "C"
-                Case "Ž" : c2 = "Z"
-                Case "Đ" : c2 = "Dj"
-                Case "Š" : c2 = "S"
 
-                Case "ö" : c2 = "oe"
-                Case "ä" : c2 = "ae"
-                Case "ë" : c2 = "ee"
-                Case "ü" : c2 = "ue"
+    '    If files.Count = 0 Then
+    '        Console.WriteLine("Folder """ & folderName & """ is empty.")
+    '    Else
+    '        Console.WriteLine(files.Count & " filenames processed, " & renameSucceded & " names renamed, " & renameFailed & " failed to rename.")
+    '    End If
 
-                Case "Ö" : c2 = "Oe"
-                Case "Ä" : c2 = "Ae"
-                Case "Ë" : c2 = "Ee"
-                Case "Ü" : c2 = "Ue"
+    '    Console.WriteLine(nonAsciiFileNameCount & " filenames contain non-ASCII characters.")
+    '    Else
+    '    ShowUsage()
+    '    End If
 
-                Case Else : c2 = c
-            End Select
+    'End Sub
 
-            sb.Append(c2)
-        Next
+    Sub ResetCounters()
 
-        Return sb.ToString
+        totalItemCount = 0
+        totalFolderCount = 0
 
-    End Function
+        renameCandidateCount = 0
+        renameNotNeeded = 0
+        renameSucceded = 0
+        renameFailed = 0
+        renameSkipped = 0
+
+    End Sub
+
+    Sub DisplayCounters()
+
+        Console.WriteLine()
+        Console.WriteLine("Total item count:      " & totalItemCount)
+        Console.WriteLine("Total folder count:    " & totalFolderCount)
+        Console.WriteLine("Total file count:      " & totalItemCount - totalFolderCount)
+        Console.WriteLine()
+        Console.WriteLine("Total ASCII names:     " & renameNotNeeded)
+        Console.WriteLine("Total nonASCII names:  " & renameCandidateCount)
+        Console.WriteLine("Total renamed:         " & renameSucceded)
+        Console.WriteLine("Total renames failed:  " & renameFailed)
+        Console.WriteLine("Total renames skipped: " & renameSkipped)
+
+    End Sub
 
 End Module
