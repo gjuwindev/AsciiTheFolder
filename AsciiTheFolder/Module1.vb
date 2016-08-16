@@ -12,13 +12,8 @@
 
         If ProcessCommandLineArguments(args) Then
             WalkRecursivelyAndRenameFilesAndFolders(startingFolderName)
+            DisplayCounters()
         End If
-
-        DisplayCounters
-
-        ' the following prompt and input to be removed in the final version
-        Console.WriteLine("Finished.")
-        Console.ReadLine()
 
     End Sub
 
